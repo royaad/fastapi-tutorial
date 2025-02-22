@@ -6,7 +6,7 @@
 
 A REST (Representational State Transfer) API is an architectural style that defines a set of constraints to be used for creating web services. REST APIs allow different software applications to communicate over the web using HTTP requests. These APIs are stateless, meaning each request from a client contains all the information needed for the server to fulfill that request.
 
-#### Benefits of REST APIs:
+#### Benefits of REST APIs
 
 - **Scalability**: REST APIs separate client and server concerns, making it easier to scale applications.
 - **Statelessness**: Each request is independent, which simplifies the server-side logic and reduces server load.
@@ -176,10 +176,3 @@ _Discuss advanced topics like middleware, dependency injection, background tasks
 ## References
 
 - [Markdown Admonition](https://stackoverflow.com/questions/50544499/github-flavored-markdown-how-to-make-a-styled-admonition-box-in-a-gist)
-
-## Testing div
-
-<div class="alert alert-info">
-  <i class="fas fa-clipboard"></i><strong>&ensp;Abstract</strong>
-    <p>There is a lot of material in the sequence, leading to many "small" questions.</p>
-</div>
