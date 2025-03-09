@@ -1,0 +1,117 @@
+openapi: 3.0.0
+info:
+    title: Transcription API
+    version: 1.0.0
+paths:
+    /heartbeat/:
+        get:
+            summary: Check API heartbeat
+            responses:
+                "200":
+                    description: API is up and running
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: string
+                                        description: Status of the API
+                                    time:
+                                        type: string
+                                        description: Server time
+                            examples:
+                                example-1:
+                                    value:
+                                        status: "ok"
+                                        time: "06:10:38"
+                "500":
+                    description: Internal server error
+    /transcribe/:
+        post:
+            summary: Transcribe audio file
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            required:
+                                - file
+                            properties:
+                                file:
+                                    type: string
+                                    format: binary
+                                    description: The audio file to be transcribed
+                            examples:
+                                example-1:
+                                    value:
+                                        file: "@monday_f4d8.wav;type=audio/wav"
+            responses:
+                "200":
+                    description: Successful transcription
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    filename:
+                                        type: string
+                                        description: Name of the audio file
+                                    type:
+                                        type: string
+                                        description: Type of the audio file
+                                    segments:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                start:
+                                                    type: number
+                                                    format: float
+                                                    description: Start time of the segment
+                                                end:
+                                                    type: number
+                                                    format: float
+                                                    description: End time of the segment
+                                                text:
+                                                    type: string
+                                                    description: Transcribed text of the segment
+                                                words:
+                                                    type: array
+                                                    items:
+                                                        type: object
+                                                        properties:
+                                                            word:
+                                                                type: string
+                                                                description: Transcribed word
+                                                            start:
+                                                                type: number
+                                                                format: float
+                                                                description: Start time of the word
+                                                            end:
+                                                                type: number
+                                                                format: float
+                                                                description: End time of the word
+                                                            score:
+                                                                type: number
+                                                                format: float
+                                                                description: Confidence score of the transcription
+                            examples:
+                                example-1:
+                                    value:
+                                        filename: "monday_f4d8.wav"
+                                        type: "audio/wav"
+                                        segments:
+                                            - start: 0.396
+                                              end: 0.789
+                                              text: " Monday."
+                                              words:
+                                                  - word: "Monday."
+                                                    start: 0.396
+                                                    end: 0.789
+                                                    score: 0.937
+                "400":
+                    description: Bad request
+                "500":
+                    description: Internal server error

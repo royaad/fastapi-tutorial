@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Tabs Example</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ccc;
+        }
+        .tab-button {
+            padding: 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            background-color: #f0f0f0;
+            margin-right: 5px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+        }
+        .tab-button.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+        }
+        .tab-content {
+            display: none;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 0 0 10px 10px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-button i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <div class="tab-button active" onclick="showTab('bash')"><i class="fas fa-terminal"></i>Bash</div>
+        <div class="tab-button" onclick="showTab('python')"><i class="fab fa-python"></i>Python</div>
+    </div>
+    <div id="bash" class="tab-content active">
+        <pre><code>curl -X PUT "http://localhost:6333/collections/{collection_name}" \\
+-H 'Content-Type: application/json' \\
+--data-raw '{
+    "vectors": {
+        "size": 300,
+        "distance": "Cosine"
+    }
+}'</code></pre>
+    </div>
+    <div id="python" class="tab-content">
+        <pre><code>from qdrant_client import QdrantClient, models
+
+client = QdrantClient(url="http://localhost:6333")
+client.create_collection(
+    collection_name="{collection_name}",
+    vectors_config=models.VectorParams(size=300, distance=models.Distance.COSINE),
+)</code></pre>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(button => button.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

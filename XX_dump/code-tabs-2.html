@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Tabs Example</title>
+    <style>
+        .tab {
+            display: none;
+        }
+        .tab.active {
+            display: block;
+        }
+        .tab-buttons {
+            display: flex;
+            cursor: pointer;
+        }
+        .tab-buttons div {
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+        }
+        .tab-buttons .active {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="tab-buttons">
+        <div class="tab-button" onclick="showTab('bash')">Bash</div>
+        <div class="tab-button" onclick="showTab('python')">Python</div>
+    </div>
+    <div id="bash" class="tab active">
+        <pre><code>curl -X GET "https://api.example.com/data"</code></pre>
+    </div>
+    <div id="python" class="tab">
+        <pre><code>import requests
+
+response = requests.get("https://api.example.com/data")
+print(response.json())</code></pre>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            const tabs = document.querySelectorAll('.tab');
+            const buttons = document.querySelectorAll('.tab-button');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(button => button.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

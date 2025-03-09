@@ -1,17 +1,21 @@
 # Tutorial (In Progress)
 
-Topics to be addressed:
+Topics to be addressed (Not in order):
 
+-   [ ] HTTP Paths, Queries, and Bookmarks
 -   [ ] CRUD Operations: How to create BaseModels
+-   [ ] API Design Principles 
 -   [ ] Responses: Upload wav-file and return properties... handle exceptions
 -   [ ] OpenAPI: How to write an API Contract
 -   [ ] Middleware
 -   [ ] API Routers
 -   [ ] Caching
+-   [ ] Cookies, sessions. session id, tokens, etc...
 -   [ ] Database (SQL Lite)
 -   [ ] Authentication
 -   [ ] Instrumentation & Observability: Opentelemetry, Prometheus, etc...
 -   [ ] Unit Testing: PyTest
 -   [ ] Load Testing: Locust. In this part also discuss asynchronous programming. Compute vs IO bound operations... How to write an efficient FastAPI. Try cases with sleep to mimic IO and cases with computations (like factorials) to mimic compute and see how async is affected for a better understanding.
 -   [ ] Understand the lying mechanism behind FastAPI: ASGI, Starlette, scope, receive, send.
+-   [ ] Create a batcher... has a wait time and a FIFO queue and batches a max number of requests then returns them.
 -   [ ] Debugging FastAPI
