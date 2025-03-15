@@ -2,7 +2,34 @@
 
 ## Introduction
 
-HTTP forms the foundation of any API request. Specifically, RESTful APIs rely on HTTP 1.1, while gRPC is built on top of HTTP 2.0. Therefore, understanding key HTTP concepts, particularly HTTP methods and responses, is crucial for designing robust APIs.
+HTTP forms the foundation of any API request. For example, RESTful APIs rely on HTTP 1.1, while gRPC is built on top of HTTP 2.0. Therefore, understanding key HTTP concepts, particularly HTTP methods and responses, is crucial for designing robust APIs.
+
+Equally important is the structure and role of URLs in API design. URLs define the endpoints where resources are accessed, specify the location of these resources, and include parameters for filtering and customizing data. They also facilitate versioning and ensure secure data transmission through protocols like HTTPS. By effectively leveraging URLs, developers can create scalable and user-friendly APIs that enable seamless interaction between different software systems.
+
+This comprehensive understanding of HTTP and URL structures is essential for building efficient and reliable APIs.
+
+```mermaid
+pie title APIs Market Share (2023)
+    "REST" : 57.9
+    "SOAP" : 22.7
+    "GraphQL" : 8.9
+    "gRPC": 4.1
+    "MQTT": 6.2
+```
+
+## URL Structure
+
+A Uniform Resource Locator (URL) is a critical element in the identification and access of resources on the internet. When a URL is entered into a web browser's address bar, it directs the browser to a specific resource, which may be a webpage or another type of resource.
+
+URLs are composed of several distinct components:
+
+-   **Protocol/Scheme**: Specifies the protocol to be used for the connection, such as `http` or `https`.
+-   **Domain Name and Port**: The domain name identifies the server hosting the resource, and the port number (if specified) follows a colon (`:`).
+-   **Path**: Indicates the specific location of the resource on the server, separated by slashes (`/`).
+-   **Parameters**: Begins with a question mark (`?`) and includes key-value pairs that provide additional information to the server, formatted as `key=value` and separated by ampersands (`&`).
+-   **Fragment/Anchor**: Denoted by a hash (`#`), it refers to a specific section within the resource.
+
+![[url-structure.jpg | 400]]
 
 ## HTTP Methods
 
