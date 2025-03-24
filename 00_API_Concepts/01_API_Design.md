@@ -424,167 +424,67 @@ By following these advanced rules, you can create a robust, flexible, and user-f
 
 ## Idempotency
 
-What is idempotency... give the definition
+Idempotency in APIs ensures that performing an operation multiple times has the same effect as performing it once. This means that making the same API request multiple times will not change the result beyond the initial application.
 
-do a table of the below
-POST resquests are not idempotent.
-GET is idempotent by default
-PUT is idempotent
-PATCH not idempotetnt
-Delete is idempotent
+Some HTTP methods are idempotent by default, while others are not. The table below summarizes the idempotency of common HTTP methods:
 
-to ensure it will require a unique request that will be sent in order to insure that the request will not be repeated. it requires some addtional checks...
+| HTTP Method | Idempotency |
+| ----------- | ----------- |
+| POST        | ❌          |
+| GET         | ✅          |
+| PUT         | ✅          |
+| PATCH       | ❌          |
+| DELETE      | ✅          |
 
-My company's software routes orders to a dozen different print companies that print and ship physical goods. I've had this exact conversation, word-for-word, with different tech teams:
+To achieve exactly-once behavior for non-idempotent operations, additional coordination between the client and server is required. This typically involves using an idempotency key.
 
-> Jeff: How can I ensure that I don't submit duplicate orders?
->
-> Print company: Can't you just only submit the order once?
+### Idempotency Key
 
-Sigh. No, I'm afraid I cannot. The quick example I always send back is this one:
+Clients can submit a unique value with the POST request, and the server enforces the uniqueness of this value. The idempotency key can be sent in the header as `Idempotency-Key` or `X-Idempotency-Key`:
 
-1. I submit the order
-2. The network fails and I get a timeout instead of 200 OK
-3. I don't know if the order succeeded or failed
-
-But I need a more detailed answer that I can point people at, so here it goes. If you work for a print company and I sent you here, please don't take it personally! You are not alone.
-
-### A Brief Primer On Idempotence
-
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#a-brief-primer-on-idempotence>)
-
-**Idempotence** is the property of an operation such that if you execute it more than once, it doesn't change the result. You already expect `GET`, `PUT`, and `DELETE` operations to be idempotent:
-
-```
-
-# GET doesn't change anything on the server
-
-GET /orders/ORD123
-
-# If you call PUT on the same order more than once, the zip stays the same
-
-PUT /orders/ORD123/address
-{"zip": "91202"}
-
-# If you call DELETE multiple times, the order stays deleted
-
-DELETE /orders/ORD123
-
-```
-
-Create operations, usually associated with `POST`, are different. Without special handling, they are *not* idempotent.
-
-```
-
-# Every time you call this, we create a new order
-
-POST /orders
-{"product": "frisbee", "address": {...etc...}}
-
-```
-
-Because the network is not reliable, we suffer from the [Two General's Problem](https://en.wikipedia.org/wiki/Two_Generals%27_Problem). If an error occurs, there's no way for the client to know whether or not the operation successfully completed on the server. If the client submits the order again, we may create duplicate orders ("at-least-once"). If the client does not re-submit the order, we may lose orders ("at-most-once").
-
-To get exactly-once behavior for non-idempotent operations, we need additional coordination between the client and server. There are generally two good ways and one crappy way to support this.
-
-#### Good option: An "idempotency key" or "client reference ID"
-
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#good-option-an-idempotency-key-or-client-reference-id>)
-
-Let the client submit a unique value with the POST, and enforce uniqueness of this value on the server. [Stripe](https://stripe.com/docs/api/idempotent_requests) works this way, using a header. They store the idempotency key for 24 hours, giving you 24 hours of protection against duplication:
-
-```
-
-POST /v1/customers
-Idemptency-Key: blahblahblahblah
+```http
+POST /clients/{client_id}/orders
+X-Idempotency-Key: FDH23AB5DHC
 {"name":"Bob Dobbs"}
-
 ```
 
-Similarly, many order processing systems allow clients to submit a "customer reference ID" which is persisted with each order and included in customer reports. Enforcing uniqueness of this value protects against duplicate orders in perpetuity.
+### Methods to Generate an Idempotency Key
 
-Make sure the key/id is a string - see Rule #6.
+1. **Hashing the Request Body**: Generate a hash of the request body to ensure that identical requests produce the same key.
+2. **Combining User ID and Request Path**: Create a key by combining the user ID and the request path, ensuring uniqueness for each user and endpoint.
+3. **Checking Time Between Requests**: Use timestamps to identify retries. If the same request is sent within a very short time frame (e.g., a few milliseconds), it is likely a retry.
+4. **Using a Mixture of Random ID and Body Hash**: Combine a random ID with a hash of the request body to create a unique key that is resistant to collisions.
+5. **UUID Generation**: Use universally unique identifiers (UUIDs) to generate idempotency keys. This method ensures a high degree of uniqueness and is commonly used in distributed systems.
+6. **Client-Generated Keys**: Allow clients to generate their own idempotency keys and send them with requests. This approach gives clients control over key generation and can be useful in scenarios where client-side logic determines uniqueness.
+7. **Server-Side Hashing**: Implement server-side hashing of request parameters to generate idempotency keys. This method can be combined with other techniques to enhance security and uniqueness.
+8. **Structured Idempotency**: Use structured idempotency keys that include metadata such as user ID, timestamp, and request type. This approach is used by companies like Airbnb to ensure safe financial transactions.
 
-#### Good option: Let the client pick IDs
+### Storing
 
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#good-option-let-the-client-pick-ids>)
+Store the idempotency key using a key-value store such as Redis. The key is stored along with the response before sending it to the client. The storage duration depends on the application and can range from 10 minutes to 48 hours, using TTL (time to live).
 
-If the client needs to pick a unique idempotency key for each submission, why not just make that the ID?
+### Handling Conflicts
 
-```
+When a conflict occurs due to a duplicate idempotency key, there are two main approaches:
 
-# Client picks the id
+#### Return an Error
 
-POST /things
-{"id": "mything1"}
+Return a 409 CONFLICT response, including the existing ID in the error message:
 
-# The id can now be used
-
-GET /things/mything1
-
-```
-
-This can result in simple, ergonomic APIs - though it adds implementation complexity in multitenant systems (where the ID must be uniqued to each tenant).
-
-#### Crappy option: Provide an endpoint to list recent transactions
-
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#crappy-option-provide-an-endpoint-to-list-recent-transactions>)
-
-This is a workaround for client developers if the API doesn't offer any explicit help with idempotence:
-
-1. Before *every* submission, fetch a list of recent transactions from the server.
-2. Look for an existing transaction that matches your intended submission (hopefully you have a client reference ID to match).
-
-For this to work, the client must serialize all create operations - otherwise there is a race condition. It's slow, and maintaining an N hour safety window means fetching N hours of transactions - potentially prohibitive on a busy system. But if you're building a client and the API doesn't provide another idempotence mechanism, this is what you have to do.
-
-### When a conflict occurs...
-
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#when-a-conflict-occurs>)
-
-Now that your API offers a (good) idempotence mechanism, there's one more major consideration: How do you inform the client that there's a conflict? There are two main schools of thought:
-
-#### Return an error
-
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#return-an-error>)
-
-When a client submits a duplicate idempotency key, I like to return 409 CONFLICT. There is one trick here - unless you're using user-submitted IDs ("Let the client pick IDs"), you need to include the existing ID in the error message or otherwise provide a mechanism to lookup the ID by idempotency key.
-
-```
-
-POST /things
-{"idempotency_key": "blahblahblah", ...etc...}
-
+```http
 # Response 409 CONFLICT
-
-{"message": "This is a duplicate", old_id": "THG1234"}
-
+{"message": "This is a duplicate", "old_id": "THG1234"}
 ```
 
-When the client gets a 409 CONFLICT response, it says "oh, already done" and records the created ID. Just like it would have if the first POST returned without error.
+The client can then recognize the conflict and record the created ID.
 
-#### Return the earlier response
+#### Return the Earlier Response
 
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#return-the-earlier-response>)
-
-Instead of returning an error to the client, give them back the exact response that the client should have gotten the first time.
-
-This allows clients to be a little dumber since they don't have to explicitly code up a CONFLICT error handler. However, it significantly complicates server implementation: You need to store all responses for a period of time and you need to validate that the client sent the exact same parameters with each request.
-
-Stripe chose this route. I personally never have; it's a *lot* of sever work for just a little client convenience.
-
-### TL;DR
-
-[](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs#tldr>)
-
-There are a few ways of enabling idempotent behavior for non-idempotent operations. As long as you pick *something*, your clients will be happy. If you don't want to think about it too hard, go with this solution:
-
--   Have the client submit an idempotency key (aka "customer reference ID") with each POST/create operation
--   Store it in the database with a unique constraint
--   Return 409 CONFLICT when you violate the unique constraint
--   Provide the original ID in the 409 response body
+Instead of returning an error, return the exact response that the client should have received the first time. This approach simplifies client implementation but requires the server to store all responses for a period and validate that the client sent the same parameters with each request.
 
 ## Further Readings
 
 1. [How to (and how not to) design REST APIs-design-REST-APIs](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs>)
 2. [REST API Design - YouTube Video](https://www.youtube.com/watch?v=_gQaygjm_hg&list=PL53DoAIBJrduh8azUQKPFrxOPjAktLnSd&index=6)
 3. [Best Practices in API Design](https://swagger.io/resources/articles/best-practices-in-api-design/)
+4. [Idempotency - What it is and How to Implement it?](https://www.alexhyett.com/idempotency/)
