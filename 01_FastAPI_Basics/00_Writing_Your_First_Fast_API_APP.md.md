@@ -1,39 +1,39 @@
-# Writing Your First API App
+# Writing Your First FastAPI
 
-The [[01_basic_crud.py]] file contains a basic FastAPI application to demonstrate the core features of FastAPI, including handling GET, POST, and DELETE requests, parsing path and query parameters, and performing health checks.
-### Running the Application
+## Overview
 
-To run the FastAPI server using Uvicorn, follow these steps:
+The `00_basic_crud.py` file contains a simple FastAPI application designed to demonstrate key FastAPI features. These include handling GET, POST, and DELETE requests, parsing path and query parameters, and performing health checks.
+
+## Running the Application
+
+To start the FastAPI server using Uvicorn, follow these steps:
 
 1. Open your terminal or command prompt.
-
-2. Navigate to the directory where your FastAPI application (Python file) is located.
-
+    
+2. Navigate to the directory containing your FastAPI application.
+    
 3. Execute the following command:
+    
 
-   ```powershell
-   python -m uvicorn <py_file>:<fastapi_instance> --reload
-   ```
-
-Replace `<py_file>` with the name of your Python file (without the `.py` extension) and `<fastapi_instance>` with the name of your FastAPI instance or app.
+```powershell
+python -m uvicorn 00_basic_crud:app --reload
+```
 
 The `--reload` flag enables automatic reloading of the server whenever code changes are detected.
 
-To run the FastAPI application, use the following command:
+**Note:** Uvicorn defaults to port 8000 unless specified otherwise.
 
-Note: uvicorn works on port 8000 by defalt
 ## API Endpoints
 
-The created app has a few endpoints
-
-### Health Check
+### Health Check Endpoint
 
 ```http
 GET /v0/healthcheck
 ```
 
-it is always a good idea to have a `healthcheck` or a `heartbeat` endpoint that uses the get method. this endpoint is usually used to check if the server is ok so that when we are debugging an API request error we are sure at first that we can reach it and it is operational
-this endpoint usually should return basic like below with a timestamp preferrably to make sure that the return response is a recent one.
+A `healthcheck` or `heartbeat` endpoint is crucial for verifying the server's operational status. It is commonly used when debugging API errors to confirm that the server is reachable and functioning correctly.
+
+**Example Response:**
 
 ```json
 {
@@ -43,17 +43,19 @@ this endpoint usually should return basic like below with a timestamp preferrabl
 }
 ```
 
+The timestamp follows the ISO 8601 format for consistency.
+
 ### Employee Endpoint
 
-This endpoint supports various methods to handle employee-related operations. and serves as an example on how to use the various http methods. the endpoint serves also to show the parsing capabilities of fdastapi.
+The employee endpoint supports multiple HTTP methods to manage employee-related operations. It also demonstrates FastAPI's path parameter parsing capabilities.
 
-for example the endpoiunt
+**Examples:**
+
+**GET Request:**
 
 ```http
 GET /v0/employee/{employee_id}
 ```
-
-fast api parses the `employee_id` to the correct type as indicated in the type hinting
 
 ```python
 @app.get("/v0/employee/{employee_id}")
@@ -61,48 +63,162 @@ def get_employee(employee_id: str):
     return {"status": f"{employee_id} requested"}
 ```
 
-### Get Employee Info and get Item Availabiltiy
+**POST Request:**
 
+```http
+POST /v0/employee/{employee_id}
+```
 
-those endpoint serve to show how query parsing works in fastapi.,
+```python
+@app.post("/v0/employee/{employee_id}")
+async def create_employee(employee_id: str):
+    return {"status": f"employee {employee_id=} created"}
+```
 
-## Swagger UI
+**DELETE Request:**
 
-to check the docuymentation you can go to 
+```http
+DELETE /v0/employee/{employee_id}
+```
+
+```python
+@app.delete("/v0/employee/{employee_id}")
+async def delete_employee(employee_id: str):
+    return {"status": f"employee {employee_id} deleted"}
+```
+
+### Employee Information and Item Availability Endpoints
+
+**GET Employee Info with Optional Query Parameters:**
+
+```http
+GET /v0/employee/{employee_id}/info/{info_str}?q=min%3D1%26max%3D5
+```
+
+**Example Response:**
+
+```json
+{
+    "status": "salary of employee with employee_id=1 queried with parameters min=1&max=5"
+}
+```
+
+**GET Item Availability with Required Query Parameter:**
+
+```http
+GET /v0/items/{items_id}?available=true
+```
+
+**Example Response:**
+
+```json
+{
+    "status": "items_id=1 is available=True"
+}
+```
+
+### Advanced Employee Search Endpoint
+
+For advanced queries using `Query` parameters:
+
+```http
+GET /v0/employees?age=30&in_office=true
+```
+
+**Example Response:**
+
+```json
+{
+    "status": "get for employees with age=30 and in office"
+}
+```
+
+## FastAPI's Parsing and Exception Handling
+
+FastAPI includes powerful parsing and validation capabilities that automatically handle invalid data. For instance, the following request will return a **422 Unprocessable Entity** error:
+
+```http
+GET /v0/items/t?available=true HTTP/1.1
+```
+
+**Example Error Response:**
+
+```json
+{
+    "detail": [
+        {
+            "type": "int_parsing",
+            "loc": ["path", "items_id"],
+            "msg": "Input should be a valid integer, unable to parse string as an integer",
+            "input": "t"
+        }
+    ]
+}
+```
+
+This occurs because the `items_id` parameter expects an integer, but the path provided (`t`) is a string. FastAPI automatically detects such issues and returns informative error messages, simplifying debugging and improving API reliability.
+
+## Synchronous vs Asynchronous Code in FastAPI
+
+FastAPI is optimized to handle asynchronous code efficiently, but it also fully supports synchronous code. In the provided examples, both `async def` and regular `def` functions are used.
+
+- Asynchronous functions (`async def`) are ideal for I/O-bound tasks like database interactions or HTTP requests.
+    
+- Synchronous functions (`def`) are still acceptable and work seamlessly in FastAPI.
+    
+
+In this example, the two styles are used randomly to demonstrate compatibility. Choosing the most efficient method depends on the nature of the task and will be discussed in detail in future documentation.
+
+While mixing these styles does **not** result in runtime errors, it may introduce latency issues if not managed carefully. This topic is beyond the scope of this basic demonstration but will be covered thoroughly in later documentation.
+
+## Testing the API
+
+Testing is an essential step to ensure your endpoints behave as expected. Below are two effective ways to test your API: using Swagger UI and cURL.
+
+### 1. Swagger UI (Recommended for Visual Testing)
+
+FastAPI automatically generates interactive API documentation, accessible at:
 
 ```plaintext
 http://localhost:8000/docs
 ```
 
-## cURL
+The Swagger UI provides a user-friendly interface where you can test your endpoints directly from the browser.
 
+### 2. cURL (Recommended for Command-Line Testing)
 
+cURL is useful for automated testing or when you prefer command-line tools.
+
+**Basic Request:**
+
+```bash
 curl -X 'GET' \
+  'http://localhost:8000/v0/employee/1/info/salary' \
+  -H 'accept: application/json'
+```
 
-  'http://localhost:8000/v0/employee/1/info/salary' \
+**Response:**
 
-  -H 'accept: application/json'
-
-  
-
-  {
-
-  "status": "salary of employee with employee_id=1 queried without parameters"
-
+```json
+{
+    "status": "salary of employee with employee_id=1 queried without parameters"
 }
+```
 
-  
+**Request with Parameters:**
 
+```bash
 curl -X 'GET' \
+  'http://localhost:8000/v0/employee/1/info/salary?q=min%3D1%26max%3D5' \
+  -H 'accept: application/json'
+```
 
-  'http://localhost:8000/v0/employee/1/info/salary?q=min%3D1%26max%3D5' \
+**Response:**
 
-  -H 'accept: application/json'
-
-  
-
-  {
-
-  "status": "salary of employee with employee_id=1 queried with parameters min=1&max=5"
-
+```json
+{
+    "status": "salary of employee with employee_id=1 queried with parameters min=1&max=5"
 }
+```
+
+By combining these methods, you can efficiently test your API during development and deployment.
