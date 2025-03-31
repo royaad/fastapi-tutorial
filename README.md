@@ -2,9 +2,9 @@
 
 Topics to be addressed (Not in order):
 
--   [ ] HTTP Paths, Queries, and Bookmarks
--   [ ] CRUD Operations: How to create BaseModels
--   [ ] API Design Principles 
+-   [x] HTTP Paths, Queries, and Bookmarks
+-   [x] CRUD Operations: How to create BaseModels
+-   [x] API Design Principles 
 -   [ ] Responses: Upload wav-file and return properties... handle exceptions
 -   [ ] OpenAPI: How to write an API Contract
 -   [ ] Middleware

@@ -13,9 +13,9 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, HTTPException, Query, Depends
 from pydantic import BaseModel, EmailStr, Field, model_validator, field_validator
 
-# initiate an random db
+# Initiate an random db
 # Of course, a real db should not be store in an in-memory dictionary.
-# this serves only as a simple example of a db
+# This serves only as a simple example of a db
 employee_db = {
     'ccbd5cb5-1850-4a48-97c2-dccc11b4b935': {
         "first_name": "John",
@@ -49,7 +49,7 @@ employee_db = {
     }
 }
 
-# the Employee Model will do data validation and check that all is ok
+# The Employee Model will do data validation and check that all is ok
 class Employee(BaseModel):
     first_name: str
     last_name: str
@@ -57,6 +57,7 @@ class Employee(BaseModel):
     email: Optional[EmailStr] = None
     
     @field_validator('first_name', 'last_name')
+    @classmethod # Not always necessary but preferred for clean code
     def validate_and_format_name(cls, v):
         v = v.strip()
         if not v.isalpha():
@@ -64,6 +65,7 @@ class Employee(BaseModel):
         return v.capitalize()
 
     @field_validator('birthday')
+    @classmethod
     def validate_birthday(cls, v):
         # Ensure the person is between 18 and 64 years old
         today = datetime.today().date()
@@ -72,14 +74,25 @@ class Employee(BaseModel):
         if age < 18 or age > 64:
             raise ValueError('Age must be between 18 and 64 years old.')
         return v
+    
+    @model_validator(mode="after")
+    @classmethod
+    def validate_email(cls, values):
+        if email:=values.email:
+            email = email.lower()
+            expected_email = f"{values.first_name[0].lower()}{values.last_name.lower()}@example.com"
+            if email != expected_email:
+                raise ValueError(f"Email must be null or equal to '{expected_email}'.")
+        return values
 
 
 class NameParams(BaseModel):
     first_name: str
     last_name: str
-    # validates and transforms the first and last name
-    # requires Pydantic v2.x
+    # Validates and transforms the first and last name
+    # Requires Pydantic v2.x
     @field_validator('first_name', 'last_name')
+    @classmethod
     def validate_and_format_name(cls, v):
         v = v.strip()
         if not v.isalpha():
@@ -93,6 +106,7 @@ class AgeParams(BaseModel):
     # validates that the min and max are in order
     # requires Pydantic v2.x
     @model_validator(mode='before')
+    @classmethod
     def check_max_age_greater_than_min_age(cls, values):
         min_age = values.get('min_age')
         max_age = values.get('max_age')
@@ -116,12 +130,12 @@ class SearchParams(BaseModel):
     max_age: Optional[int] = Field(default=None, le=64)
 
     @model_validator(mode='before')
+    @classmethod
     def do_basic_checks(cls, values):
         min_age = values.get('min_age')
         max_age = values.get('max_age')
 
         if (min_age is None) != (max_age is None):
-            print("test")
             raise ValueError("Both min_age and max_age must be provided together or omitted.")
         # No need to check min_age...
         if max_age is not None and max_age <= min_age:
@@ -136,6 +150,7 @@ class SearchParams(BaseModel):
         return values
 
     @field_validator('first_name', 'last_name')
+    @classmethod
     def validate_and_format_name(cls, v):
         if v:
             v = v.strip()
@@ -144,9 +159,13 @@ class SearchParams(BaseModel):
             return v.capitalize()
         return v
 
+# ------------------------------------------------------------------------------------ #
+#                                   Start of the API                                   #
+# -------------------------------------------------------------------------------------#
+
 app = FastAPI()
 
-
+# Basic API health check
 @app.get("/v0/healthcheck", status_code=200)
 def healthcheck():
     return {
@@ -155,9 +174,83 @@ def healthcheck():
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
     }
 
+# Update employee by uuid
+@app.put("/v0/employees")
+def update_employee(id: UUID, employee_update: Employee):
+    if (str_id:=str(id)) not in employee_db:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    employee_db[str_id].update(
+        employee_update.model_dump(exclude_unset=False)
+    )
+    return {"status": "Employee updated", "employee": employee_db[str_id]}
 
+
+# To partially update an employee we need to create model that allows for partial info
+# EmployeePatch model inherits from Employee and does the necessary modifications to allow for partial updates
+class EmployeePatch(Employee):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birthday: Optional[date] = None
+    email: Optional[EmailStr] = None
+    
+    @field_validator('first_name', 'last_name')
+    @classmethod
+    def validate_and_format_name(cls, v):
+        if v is None:
+            return v
+        return Employee.validate_and_format_name(v)
+
+    @field_validator('birthday')
+    @classmethod
+    def validate_birthday(cls, v):
+        if v is None:
+            return v
+        return Employee.validate_birthday(v)
+
+    @model_validator(mode="after")
+    @classmethod
+    def validate_email(cls, values):
+        if values.email and values.first_name and values.last_name:
+            return Employee.validate_email(values) # type: ignore
+        elif (values.email is None) != (values.first_name is None and values.last_name is None):
+            return values
+        elif len(values.model_fields_set) == 1 and "birthday" in values.model_fields_set:
+            return values
+        else:
+            raise ValueError(f"Invalid patch due to missing values.")
+
+        
+@app.patch("/v0/employees/{id}")
+def partially_update_employee(id: UUID, employee_patch: EmployeePatch):
+    if (str_id:=str(id)) not in employee_db:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # validate the email in the data
+    if employee_db[str_id].get("email") is None:
+        employee_db[str_id].update(
+            employee_patch.model_dump(exclude_unset=True)
+        )
+    if ("email" in employee_patch.model_fields_set and
+        "first_name" not in employee_patch.model_fields_set and
+        "last_name" not in employee_patch.model_fields_set and
+        employee_patch.email != (
+            expected_email:=f"{employee_db[str_id]["first_name"][0].lower()+employee_db[str_id]["last_name"].lower()}@example.com"
+            )
+    ):
+        raise HTTPException(status_code=404, detail=f"Email should be '{expected_email}'")
+    else:
+        employee_db[str_id].update(
+            employee_patch.model_dump(exclude_unset=True)
+        )
+        
+    # There are more cases to be consider... However this is not the purpose of this tutorial
+        
+    return {"status": "Employee updated", "employee": employee_db[str_id]}
+
+# Creates a new employee
 @app.post("/v0/employees", status_code=201)
-async def create_employee(employee: Employee):
+def create_employee(employee: Employee):
     # Check if the employee already exists by using a set of unique identifiers
     for employee_id, existing_employee in employee_db.items():
         if (
@@ -179,14 +272,15 @@ async def create_employee(employee: Employee):
         "employee_data": employee_db[employee_id]
     }
 
+# Deletes an employee
 # 204 doesn't return a message
 @app.delete("/v0/employees/{id}", status_code=204)
-async def delete_employee(id: UUID):
+def delete_employee(id: UUID):
     if employee_db.pop(str(id), None) is None:
         raise HTTPException(status_code=404, detail="Employee not found")
     return
 
-# look for an employee by age range
+# Searches for an employee by age range
 @app.get("/v0/employees/search-by-age")
 def get_employee_by_age(age_query: Annotated[AgeParams, Query()]):
     today = date.today()
@@ -207,7 +301,7 @@ def get_employee_by_age(age_query: Annotated[AgeParams, Query()]):
 
     return {"status": "success", "employees": matching_employees}
 
-# look for an employee by age range
+# Searches for an employee by age range
 @app.get("/v0/employees/search-by-name")
 def get_employee_by_name(name_query: Annotated[NameParams, Query()]):
 
@@ -226,7 +320,7 @@ def get_employee_by_name(name_query: Annotated[NameParams, Query()]):
 
     return {"status": "success", "employees": matching_employees}
 
-
+# Mixed search with new query model SearchParams
 @app.get("/v0/employees/search")
 def get_employee_v0(
     search_query: SearchParams = Depends()
@@ -254,7 +348,8 @@ def get_employee_v0(
 
     return {"status": "success", "employees": matching_employees}
 
-
+# Another way to create queries from old queries
+# However, here all parameters are required
 @app.get("/v1/employees/search")
 def get_employee_v1(
     age_query: AgeParams = Depends(), # or Annotated[AgeParams, Depends()]
@@ -319,7 +414,8 @@ class MixedSearchParams(NamedTuple):
     min_age: int
     max_age: int
     
-
+# A second way to create query params from old Params
+# The Depends function can be used as a wrapper
 @app.get("/v2/employees/search")
 def get_employee_v2(
     search_query: Annotated[MixedSearchParams, Depends(bundle_name_and_age)],
