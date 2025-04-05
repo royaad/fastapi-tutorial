@@ -9,11 +9,8 @@ The `00_basic_crud.py` file contains a simple FastAPI application designed to de
 To start the FastAPI server using Uvicorn, follow these steps:
 
 1. Open your terminal or command prompt.
-    
 2. Navigate to the directory containing your FastAPI application.
-    
 3. Execute the following command:
-    
 
 ```powershell
 python -m uvicorn 00_basic_crud:app --reload
@@ -162,10 +159,8 @@ This occurs because the `items_id` parameter expects an integer, but the path pr
 
 FastAPI is optimized to handle asynchronous code efficiently, but it also fully supports synchronous code. In the provided examples, both `async def` and regular `def` functions are used.
 
-- Asynchronous functions (`async def`) are ideal for I/O-bound tasks like database interactions or HTTP requests.
-    
-- Synchronous functions (`def`) are still acceptable and work seamlessly in FastAPI.
-    
+-   Asynchronous functions (`async def`) are ideal for I/O-bound tasks like database interactions or HTTP requests.
+-   Synchronous functions (`def`) are still acceptable and work seamlessly in FastAPI.
 
 In this example, the two styles are used randomly to demonstrate compatibility. Choosing the most efficient method depends on the nature of the task and will be discussed in detail in future documentation.
 
