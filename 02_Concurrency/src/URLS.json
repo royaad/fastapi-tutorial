@@ -1,0 +1,12 @@
+{
+    "URLS_list": [
+        "http://www.foxnews.com/",
+        "http://www.cnn.com/",
+        "http://europe.wsj.com/",
+        "http://www.bbc.co.uk/",
+        "http://google.com/",
+        "http://example.com/",
+        "https://httpbin.org/get",
+        "https://pkmn.li"
+    ]
+}

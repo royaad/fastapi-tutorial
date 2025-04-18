@@ -1,26 +1,99 @@
-# Concurrency
+# Concurrency in Python and FastAPI
 
-In the previous parts, we mentioned that FastAPI can handle synchronous and asynchronous functions. however, there is a best practice to when to use synchronous and asynchronous. In this part, we try to our best to explain when to use synchronous vs when not to. in order to better understand when, we will briefly not deal with FastAPI, but instead explain what is concurency and parallelism and how to use them in python and how they affect the latency of a software before we imbark again on our FastAPI journey
+In previous sections, we briefly mentioned that FastAPI can handle both synchronous and asynchronous functions. However, choosing between the two is not arbitrary—there are best practices for when to use each.
 
-## What is Asynchronous Function?
+Before diving back into FastAPI, this section aims to clarify **when to use synchronous vs asynchronous functions** by stepping back and exploring the broader concepts of **concurrency** and **parallelism** in Python. Understanding these concepts will help you build performant applications and better manage latency in your software.
 
-When a function is called synchronously each step in that function must complete before the next step is executed. However, in an asynchronous function tasks are executed "concurrently". so to understand asynchronous functions we must first understand concurency. so what is concurency?
+## What Is an Asynchronous Function?
 
-### Concurrency vs. Parallelism
+When a function is called **synchronously**, each step in its execution must complete before the next step begins. In contrast, **asynchronous functions** allow certain operations to be executed **concurrently**, enabling more efficient use of system resources, especially during I/O-bound tasks.
 
-A lot of times concurrency is confused with parrallelism.
-- Parallelism is achieved when multiple task are executed at the exact same time by levaraging multiple CPU cores. Parellilism in about independability. Tasks run independently of each other, at the exact same time.
-- Concurrency on the other hand is about managing multiple tasks by interleaving their execution giving the illusion that they are happening simultaneously. Basically concurency is about interrubtibility. Tasks interupt and resume, making them appear to progress.
+To fully understand asynchronous programming, we must first differentiate between **concurrency** and **parallelism**.
 
-Parallelism is suitable for CPU-intensive tasks such as mathematical computations
-Concurrency is best for I/O bound tasks such as file read/write and network based tasks.
+## Concurrency vs. Parallelism
 
-### Concurrency and Parallelism in Python
+These terms are often used interchangeably, but they refer to fundamentally different concepts:
 
-In python concurrency is achieved by using the `Threading` Module while parallelism can be achieved by using the `multiprocessing` module
+-   **Parallelism** involves executing multiple tasks **at the same time**, typically by leveraging **multiple CPU cores**. It is ideal for **CPU-bound** tasks—those that require intense computation and can run independently.
+-   **Concurrency**, on the other hand, involves **interleaving the execution** of multiple tasks to give the appearance that they are happening simultaneously. It is well-suited for **I/O-bound** operations where the CPU would otherwise remain idle.
 
+> **Rule of thumb:**
+>
+> -   Use **parallelism** (e.g., `multiprocessing`) for CPU-intensive tasks like data processing and numerical computations.
+> -   Use **concurrency** (e.g., `asyncio` or `threading`) for I/O-bound tasks such as file handling or network communication.
 
-https://youtu.be/Ii7x4mpIhIs?si=JZtNMF0tORjjtU1W
-https://youtu.be/K56nNuBEd0c?si=rhvR-5LQE2DKEclg
-https://youtu.be/SAueUTQNup8?si=sF1kXLsJgMKcT2i6
-https://youtu.be/MfCbM6NKPeY?si=0F4fPh6f0J6a8jae
+## Concurrency and Parallelism in Python
+
+Python provides several tools for implementing both concurrency and parallelism:
+
+-   **`asyncio`** – Asynchronous I/O using a single-threaded, event-driven model
+-   **`threading`** – OS-level threads for concurrent execution
+-   **`multiprocessing`** – True parallelism using separate processes and CPU cores
+
+The following table outlines the key characteristics of each approach:
+
+| Feature        | `asyncio`                                                        | `threading`                                          | `multiprocessing`                               |
+| -------------- | ---------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| Achieves       | Concurrency                                                      | Concurrency                                          | Parallelism                                     |
+| Model          | Single-threaded, cooperative multitasking                        | Multi-threaded, preemptive multitasking (OS-managed) | Multi-process, separate memory space            |
+| Task Switching | Controlled by event loop (cooperative)                           | Managed by OS (preemptive)                           | Each process runs independently                 |
+| CPU Core Usage | Single core                                                      | Single core                                          | Multiple cores                                  |
+| Overhead       | Minimal; requires `async/await` syntax                           | Higher memory usage; risk of race conditions         | Higher overhead; independent memory per process |
+| Ideal Use Case | High-latency I/O, many simultaneous connections (e.g., web APIs) | Low-latency I/O, moderate concurrency                | CPU-intensive tasks                             |
+
+### Choosing the Right Model
+
+Selecting the appropriate model depends on the nature of the workload:
+
+-   **CPU-bound tasks**  
+     For computationally intensive operations (e.g., data analysis, cryptographic processing), use **`multiprocessing`**, which distributes work across multiple CPU cores for optimal performance.
+-   **I/O-bound tasks with low latency and limited concurrency**  
+     For lightweight I/O operations (e.g., file reads/writes, basic socket communication), **`threading`** provides a simple concurrency model that’s easy to implement.
+-   **I/O-bound tasks with high latency and large-scale concurrency**  
+     For large numbers of concurrent I/O operations (e.g., serving thousands of HTTP requests), **`asyncio`** is the most scalable and resource-efficient solution.
+
+> [!NOTE] **Guiding Principle**
+>
+> -   Use **`multiprocessing`** when your workload is CPU-bound and benefits from parallel execution.
+> -   Use **`threading`** for straightforward, moderately concurrent I/O-bound tasks.
+> -   Use **`asyncio`** when you need to handle many concurrent I/O tasks with minimal resource usage.
+
+### Benchmark Comparison
+
+To further illustrate the performance differences, two functions were created:
+
+-   `fetch_url` — an **I/O-bound** task simulating network latency
+-   `factorial` — a **CPU-bound** task involving heavy computation
+
+Each function was executed using different execution models. Source code is available in the `src` directory under files with the `00_` prefix. The table below summarizes the observed execution times (in seconds):
+
+| Function    | Sequential Run (Baseline) | `asyncio`  | `threading` | `multiprocessing` |
+| ----------- | :-----------------------: | :--------: | :---------: | :---------------: |
+| `fetch_url` |        **96.931**         | **2.314**  | **20.092**  |    **23.363**     |
+| `factorial` |        **16.942**         | **16.107** | **16.432**  |     **5.629**     |
+
+These results support our conclusions:
+
+-   `asyncio` drastically reduces latency for **I/O-bound** tasks.
+-   `multiprocessing` significantly improves performance for **CPU-bound** workloads.
+
+### Why This Matters for FastAPI
+
+Modern applications increasingly adopt **microservices architectures** and demand highly concurrent systems to deliver responsive user experiences. As a result, **asynchronous programming** and **non-blocking I/O** have become essential for building scalable APIs with low latency.
+
+In the sections that follow, we will focus on **`asyncio`**, which underpins ASGI servers like **Uvicorn**, and is a core feature of **FastAPI**. Understanding how and when to use asynchronous functions will help you fully leverage FastAPI’s performance capabilities.
+
+## Asyncio
+
+### Event Loop
+
+### async, await
+
+### async modules... httpx, aiohttp, aiosqlite
+
+### build a server for fun? and compare with uvicorn
+
+-   [Video Title 1](https://youtu.be/Ii7x4mpIhIs?si=JZtNMF0tORjjtU1W)
+-   [Video Title 2](https://youtu.be/K56nNuBEd0c?si=rhvR-5LQE2DKEclg)
+-   [Video Title 3](https://youtu.be/SAueUTQNup8?si=sF1kXLsJgMKcT2i6)
+-   [Video Title 4](https://youtu.be/MfCbM6NKPeY?si=0F4fPh6f0J6a8jae)
