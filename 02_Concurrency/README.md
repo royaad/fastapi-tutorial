@@ -85,9 +85,113 @@ In the sections that follow, we will focus on **`asyncio`**, which underpins ASG
 
 ## Asyncio
 
-### Event Loop
+### The `asyncio` Event Loop Works
 
-### async, await
+The `asyncio` event loop is the core of Python's asynchronous programming model. It orchestrates the execution of multiple asynchronous tasks within a single thread, enabling efficient handling of I/O-bound operations without resorting to multithreading.
+
+#### High-Level Overview
+
+At its essence, the event loop functions as follow:
+
+1. **Initialization** The event loop is created and started, preparing to manage asynchronous task.
+2. **Task Scheduling** Asynchronous tasks (coroutines) are scheduled for execution.
+3. **Execution Cycle**:
+
+    - **Run Tasks** The loop runs each task until it encounters an `await` expression, indicating a pause for an I/O operation or a delay.
+    - **Handle I/O** While tasks are awaiting, the loop monitors I/O events and timer.
+    - **Resume Tasks** Once the awaited operation completes, the loop resumes the corresponding task.
+
+4. **Completion** This cycle continues until all tasks are completed, after which the event loop stop.
+
+![Asyncio Event Loop](https://miro.medium.com/v2/resize:fit:4800/format:webp/0*g7DPAlp9eWv-6QNH.png)
+
+#### Further Reading
+
+-   [Python's asyncio Event Loop Documentation](https://docs.python.org/3/library/asyncio-eventloop.html)
+-   [Build Your Own Event Loop from Scratch in Python](https://python.plainenglish.io/build-your-own-event-loop-from-scratch-in-python-da77ef1e3c39)
+
+### The `async` and `await` Syntax
+
+#### Coroutine Definition
+
+Prefixing a function with `async def` defines it as a **coroutine**, not a regular function. When called, it **does not execute immediately**—instead, it returns a **coroutine object**, which must be scheduled and awaited using an event loop.
+
+A coroutine is not intended to be invoked like a normal function:
+
+```python
+coro = my_coroutine()  # Returns a coroutine object, doesn't execute
+```
+
+To actually execute the coroutine, it must be **awaited**:
+
+```python
+await my_coroutine()
+```
+
+or run inside the event loop using `asyncio.run()` or `asyncio.create_task()`.
+
+> [!IMPORTANT]
+> A coroutine should contain at least one `await` expression. If a coroutine does not `await` anything, it will still return a coroutine object when called, but a `RuntimeWarning` may be raised during execution because the coroutine was never awaited or awaited without suspension—meaning it didn’t yield control to the event loop, defeating the purpose of being asynchronous.
+
+This ensures that the coroutine participates in cooperative multitasking managed by the event loop.
+
+#### Example: Concurrent Execution with `asyncio.gather()`
+
+The following example defines two I/O-bound coroutines and executes them concurrently using `asyncio.gather()` (other examples with `asyncio.create_task()` and `asyncio.get_event_loop()` can be found in [[01_asyncio_dummy_example.py|AsyncIO Dummy Example]] ):
+
+```python
+import asyncio
+import threading
+import time
+
+async def task_1():
+    print(f"Starting Task 1 in {threading.current_thread().name}")
+    start = time.perf_counter()
+    await asyncio.sleep(3)  # Simulates I/O-bound operation
+    print(f"Task 1 Ending after {time.perf_counter() - start}s")
+    return "Task 1 Ready"
+
+async def task_2():
+    print(f"Starting Task 2 in {threading.current_thread().name}")
+    start = time.perf_counter()
+    await asyncio.sleep(2)  # Simulates I/O-bound operation
+    print(f"Task 2 Ending after {time.perf_counter() - start}s")
+    return "Task 2 Ready"
+
+async def main():
+    start_time = time.perf_counter()
+    batch = asyncio.gather(task_1(), task_2())  # Schedule both tasks concurrently
+    result_1, result_2 = await batch             # Await completion of all tasks
+    duration = time.perf_counter() - start_time
+    print(result_1, result_2, f"Total Tasks Duration: {duration}")
+
+asyncio.run(main())
+```
+
+#### Sample Output
+
+```plaintext
+Starting Task 1 in MainThread
+Starting Task 2 in MainThread
+Task 2 Ending after 2.002s
+Task 1 Ending after 3.005s
+Task 1 Ready Task 2 Ready Total Tasks Duration: 3.006s
+```
+
+#### Technical Summary
+
+-   `task_1()` and `task_2()` are both asynchronous coroutines.
+-   `asyncio.sleep()` is a non-blocking sleep that suspends execution of the coroutine and yields control to the event loop.
+-   `asyncio.gather()` schedules multiple coroutines to run concurrently and waits for all of them to complete.
+-   The output demonstrates that tasks are executed concurrently: although `task_1` sleeps for 3 seconds and `task_2` for 2 seconds, the total execution time is ~3 seconds—not 5.
+
+This illustrates the power of `async`/`await` in optimizing I/O-bound operations: while one task is paused, the event loop can continue executing other tasks, all within a single-threaded, cooperative concurrency model.
+
+### Turning an Synchronous Function into an Asynchronous Routine
+
+#### Basic
+
+#### With ProcessPool
 
 ### async modules... httpx, aiohttp, aiosqlite
 
