@@ -44,13 +44,6 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def _executor_wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
-    try:
-        return func(*args, **kwargs)
-    except StopIteration as exc:
-        raise RuntimeError from exc
-
-
 async def run_in_executor(
     executor: Optional[Executor],
     func: Callable[P, T],
@@ -58,13 +51,15 @@ async def run_in_executor(
     **kwargs: P.kwargs,
 ) -> T:
     if executor is None:
-        return await asyncio.get_running_loop().run_in_executor(
-            None,
-            partial(copy_context().run, _executor_wrapper, func, *args, **kwargs),
-        )
+        # same code as to_thread()
+        loop = asyncio.get_running_loop()
+        ctx = copy_context()
+        func_call = partial(ctx.run, func, *args, **kwargs)
+        return await loop.run_in_executor(None, func_call)
+
     return await asyncio.get_running_loop().run_in_executor(
         executor,
-        partial(_executor_wrapper, func, *args, **kwargs),
+        partial(func, *args, **kwargs),
     )
 
 
@@ -88,9 +83,12 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 # Starting Task 1 in MainThread
-# Starting Task 2 in asyncio_0
-# Task 2 Ending after 2.000s
-# Task 1 Ending after 3.019s
+# Starting factorial in MainThread
+# Starting i_prime in MainThread
+# factorial ending after 2.221s
+# Task 1 Ending after 3.011s
+# is_prime ending after 7.447s
 # Task 1 Ready
-# Task 2 Ready
-# Total Tasks Duration: 3.020s
+# 333333283333335000000
+# True
+# Total Tasks Duration: 7.814s

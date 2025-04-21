@@ -56,4 +56,4 @@ print(f"AsyncIO Collection Took: {duration:.3f}s")
 
 # Sequential Execution Took: 96.931s
 # Immediate Collection Took: 20.092s
-# AsyncIO Collection Took: 2.314s
+# AsyncIO Collection Took:    2.314s

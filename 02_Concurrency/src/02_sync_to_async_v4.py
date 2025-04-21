@@ -36,7 +36,6 @@ def is_prime(n):
 
 
 async def main():
-    # Approach 1
     start_time = time.perf_counter()
 
     batch = asyncio.gather(
@@ -56,3 +55,9 @@ async def main():
 # guard still needed even with anyio
 if __name__ == "__main__":
     asyncio.run(main())
+# Starting Task 1 in MainThread
+# Task 1 Ending after 3.009s
+# Task 1 Ready
+# 333333283333335000000
+# True
+# Total Tasks Duration: 7.983s

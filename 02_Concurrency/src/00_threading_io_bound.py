@@ -53,5 +53,5 @@ duration = time.perf_counter() - start_time
 print(f"Immediate Collection Took: {duration:.3f}s")
 
 # Sequential Execution Took: 98.609s
-# Lazy Async Calls Took: 28.581s
+# Lazy Async Calls Took:     28.581s
 # Immediate Collection Took: 17.968s

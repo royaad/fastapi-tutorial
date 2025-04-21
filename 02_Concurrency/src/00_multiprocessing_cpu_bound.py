@@ -48,6 +48,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-    # Sequential Execution Took: 16.942s
-    # Legacy ProcessPool Execution Took: 5.570s
-    # ProcessPool Execution Took: 5.629s
+    # Sequential Execution Took:         16.942s
+    # Legacy ProcessPool Execution Took:  5.570s
+    # ProcessPool Execution Took:         5.629s

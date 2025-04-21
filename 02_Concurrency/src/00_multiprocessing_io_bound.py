@@ -44,5 +44,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-    # Sequential Execution Took: 93.771s
+    # Sequential Execution Took:  93.771s
     # ProcessPool Execution Took: 23.363s

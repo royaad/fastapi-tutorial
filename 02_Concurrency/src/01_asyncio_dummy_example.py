@@ -34,6 +34,15 @@ async def main():
     result_2 = await async_task_2
     duration = time.perf_counter() - start_time
     print(result_1, result_2, f"Total Tasks Duration: {duration:.3f}s", sep="\n")
+    # Approach 3
+    start_time = time.perf_counter()
+    async_task_1 = asyncio.create_task(task_1())
+    async_task_2 = asyncio.create_task(task_2())
+    done, pending = await asyncio.wait([async_task_1, async_task_2])
+    duration = time.perf_counter() - start_time
+    print(f"Total Tasks Duration: {duration:.3f}s", sep="\n")
+    for task in done:
+        print(task.result())
 
 
 asyncio.run(main())
@@ -71,7 +80,7 @@ def _main():
 # asyncio.run(main()) starts and runs a new event loop globally, and by the time _main() runs,
 # that event loop is still active. asyncio.get_event_loop() then fetches the already-running loop,
 # and run_until_complete() can't be used on a loop that’s already running — hence the RuntimeError.
-# Another quick fix is to comment the asyncio.run() in order to use asyncio.get_event_loop().
+# Another quick fix is to comment the asyncio.run() in order to use asyncio. ().
 # NOTE
 # Using
 # ```
